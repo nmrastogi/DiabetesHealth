@@ -1,0 +1,51 @@
+name: DiabetesHealth
+
+options:
+  bundleIdPrefix: com.diabeteshealth
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""              # fill in your Apple Team ID
+
+targets:
+  DiabetesHealth:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+
+    sources:
+      - path: Sources
+        createIntermediateGroups: true
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.diabeteshealth.app
+        INFOPLIST_FILE: DiabetesHealth/Info.plist
+        CODE_SIGN_ENTITLEMENTS: DiabetesHealth/DiabetesHealth.entitlements
+        TARGETED_DEVICE_FAMILY: "1"   # 1 = iPhone, "1,2" = iPhone + iPad
+
+    dependencies:
+      - sdk: HealthKit.framework
+
+    entitlements:
+      path: DiabetesHealth/DiabetesHealth.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access:
+          - health-records
+
+    info:
+      path: DiabetesHealth/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSHealthShareUsageDescription: "DiabetesHealth reads your glucose, sleep, and exercise data to generate personalised health insights."
+        NSHealthUpdateUsageDescription: "DiabetesHealth does not write any data to HealthKit."
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
