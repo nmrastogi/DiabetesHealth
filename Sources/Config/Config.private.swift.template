@@ -1,0 +1,10 @@
+import Foundation
+
+// Copy this file to Config.private.swift and fill in your real values.
+// Config.private.swift is gitignored — Config.private.swift.template is safe to commit.
+
+extension Config {
+    static let apiBaseURL        = "http://localhost:5001"       // or https://your-api.com in prod
+    static let cognitoUserPoolID = "us-west-2_XXXXXXXXX"
+    static let cognitoClientID   = "XXXXXXXXXXXXXXXXXXXXXXXXXX"
+}
