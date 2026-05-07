@@ -38,3 +38,5 @@ Podfile.lock
 .DS_Store
 .AppleDouble
 .LSOverride
+
+AGENT_PLAN.md
