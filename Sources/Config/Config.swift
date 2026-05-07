@@ -5,7 +5,7 @@ enum Config {
     static let cognitoRegion = "us-west-2"
 
     // MARK: - HealthKit sync
-    static let healthSyncDays = 30      // how many days back to sync on first launch
+    static let healthSyncDays = 14
 
     // Secrets (apiBaseURL, cognitoUserPoolID, cognitoClientID) are in
     // Config.private.swift — gitignored, never committed.

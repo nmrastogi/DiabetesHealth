@@ -20,7 +20,7 @@ class APIService: ObservableObject {
     }
 
     func ingestGlucose(_ payload: GlucoseIngestPayload) async throws {
-        try await post("/glucose/ingest", body: payload)
+        let _: SingleResponse<String> = try await post("/glucose/ingest", body: payload)
     }
 
     // MARK: - Sleep
@@ -31,7 +31,7 @@ class APIService: ObservableObject {
     }
 
     func ingestSleep(_ payload: SleepIngestPayload) async throws {
-        try await post("/sleep/ingest", body: payload)
+        let _: SingleResponse<String> = try await post("/sleep/ingest", body: payload)
     }
 
     // MARK: - Exercise
@@ -42,7 +42,7 @@ class APIService: ObservableObject {
     }
 
     func ingestExercise(_ payload: ExerciseIngestPayload) async throws {
-        try await post("/exercise/ingest", body: payload)
+        let _: SingleResponse<String> = try await post("/exercise/ingest", body: payload)
     }
 
     // MARK: - AI Insights
@@ -54,10 +54,16 @@ class APIService: ObservableObject {
 
     // MARK: - Chat
 
-    func sendChat(question: String) async throws -> String {
-        let body = ChatRequest(question: question)
-        let resp: ChatResponse = try await post("/chat", body: body)
-        return resp.answer
+    func sendChat(question: String, history: [[String: String]] = []) async throws -> ChatResponse {
+        struct Body: Encodable { let question: String; let history: [[String: String]] }
+        return try await post("/chat", body: Body(question: question, history: history))
+    }
+
+    // MARK: - Generate Insights
+
+    func generateInsights() async throws -> GenerateInsightsResponse {
+        struct EmptyBody: Encodable {}
+        return try await post("/insights/generate", body: EmptyBody())
     }
 
     // MARK: - Generic helpers
@@ -93,6 +99,25 @@ class APIService: ObservableObject {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+
+        if http.statusCode == 401 {
+            // Token expired — refresh and retry once
+            do {
+                try await AuthService.shared.refreshTokens()
+            } catch {
+                await AuthService.shared.signOut()
+                throw APIError.unauthenticated
+            }
+            var retried = req
+            try attachAuth(&retried)
+            let (data2, response2) = try await URLSession.shared.data(for: retried)
+            guard let http2 = response2 as? HTTPURLResponse, (200...299).contains(http2.statusCode) else {
+                await AuthService.shared.signOut()
+                throw APIError.unauthenticated
+            }
+            return try JSONDecoder().decode(T.self, from: data2)
+        }
+
         guard (200...299).contains(http.statusCode) else {
             let message = (try? JSONDecoder().decode([String: String].self, from: data))?["message"]
             throw APIError.serverError(http.statusCode, message ?? "Unknown error")

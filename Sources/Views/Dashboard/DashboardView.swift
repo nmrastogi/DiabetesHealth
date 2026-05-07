@@ -72,6 +72,7 @@ struct DashboardView: View {
                                 .foregroundStyle(.blue)
                             }
                             .chartYScale(domain: 60...300)
+                            .chartXScale(domain: Date().addingTimeInterval(-7 * 86400)...Date())
                             .chartXAxis {
                                 AxisMarks(values: .stride(by: .day)) { _ in
                                     AxisGridLine()
@@ -96,18 +97,32 @@ struct DashboardView: View {
                     // Sleep chart
                     if !vm.sleepRecords.isEmpty {
                         ChartCard(title: "Sleep (7 days)") {
-                            Chart(vm.sleepRecords) { record in
+                            Chart(vm.dailySleepHours, id: \.0) { (date, hours) in
                                 BarMark(
-                                    x: .value("Date", record.date),
-                                    y: .value("Hours", record.durationHours)
+                                    x: .value("Date", date, unit: .day),
+                                    y: .value("Hours", hours)
                                 )
-                                .foregroundStyle(record.durationHours >= 7 ? Color.indigo : Color.orange)
+                                .foregroundStyle(hours >= 7 ? Color.indigo : Color.orange)
                                 .cornerRadius(4)
                             }
                             .chartYScale(domain: 0...12)
+                            .chartXScale(domain: Date().addingTimeInterval(-7 * 86400)...Date())
                             .chartXAxis {
-                                AxisMarks { _ in
-                                    AxisValueLabel()
+                                AxisMarks(values: .stride(by: .day)) { _ in
+                                    AxisGridLine()
+                                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                                }
+                            }
+                            .chartYAxis {
+                                AxisMarks(values: [0, 4, 7, 8, 12]) { value in
+                                    AxisGridLine()
+                                    AxisValueLabel {
+                                        if let h = value.as(Double.self) {
+                                            Text(h == 7 ? "Goal" : "\(Int(h))h")
+                                                .font(.caption2)
+                                                .foregroundStyle(h == 7 ? Color.green : Color.primary)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -208,6 +223,17 @@ class DashboardViewModel: ObservableObject {
     @Published var isSyncing = false
     @Published var errorMessage: String?
 
+    // Aggregated sleep: one (Date, totalHours) per calendar day
+    var dailySleepHours: [(Date, Double)] {
+        var totals: [String: (Date, Double)] = [:]
+        for r in sleepRecords {
+            let key = r.date
+            let existing = totals[key]?.1 ?? 0
+            totals[key] = (r.parsedDate, existing + r.durationHours)
+        }
+        return totals.values.sorted { $0.0 < $1.0 }
+    }
+
     func loadAll() async {
         isLoading = true
         errorMessage = nil
@@ -228,7 +254,7 @@ class DashboardViewModel: ObservableObject {
     func sync() async {
         isSyncing = true
         defer { isSyncing = false }
-        await HealthKitService.shared.syncAll()
+        await HealthKitService.shared.forceSyncAll()
         await loadAll()
     }
 }

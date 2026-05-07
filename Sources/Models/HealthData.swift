@@ -1,5 +1,14 @@
 import Foundation
 
+// Handles both ISO8601 (T/Z) and MySQL datetime (space separator, UTC)
+private func parseHealthDate(_ string: String) -> Date {
+    if let d = ISO8601DateFormatter().date(from: string) { return d }
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f.date(from: string) ?? Date()
+}
+
 // MARK: - Glucose
 
 struct GlucoseRecord: Codable, Identifiable {
@@ -8,9 +17,7 @@ struct GlucoseRecord: Codable, Identifiable {
     let value: Double
     let unit: String?
 
-    var date: Date {
-        ISO8601DateFormatter().date(from: timestamp) ?? Date()
-    }
+    var date: Date { parseHealthDate(timestamp) }
     var displayValue: String { String(format: "%.0f", value) }
 }
 
@@ -38,6 +45,12 @@ struct SleepRecord: Codable, Identifiable {
     }
 
     var durationHours: Double { Double(sleepDurationMinutes ?? 0) / 60.0 }
+
+    var parsedDate: Date {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: date) ?? Date()
+    }
 }
 
 // MARK: - Exercise
@@ -52,9 +65,7 @@ struct ExerciseRecord: Codable, Identifiable {
         case durationMinutes = "duration_minutes"
     }
 
-    var date: Date {
-        ISO8601DateFormatter().date(from: timestamp) ?? Date()
-    }
+    var date: Date { parseHealthDate(timestamp) }
 }
 
 // MARK: - Dashboard Summary
@@ -98,9 +109,16 @@ struct ChatMessage: Identifiable {
     let id = UUID()
     let role: Role
     let content: String
+    let toolsUsed: [String]?
     let timestamp = Date()
 
     enum Role { case user, assistant }
+
+    init(role: Role, content: String, toolsUsed: [String]? = nil) {
+        self.role = role
+        self.content = content
+        self.toolsUsed = toolsUsed
+    }
 }
 
 struct ChatRequest: Codable {
@@ -110,6 +128,18 @@ struct ChatRequest: Codable {
 struct ChatResponse: Codable {
     let answer: String
     let status: String
+    let toolsUsed: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case answer, status
+        case toolsUsed = "tools_used"
+    }
+}
+
+struct GenerateInsightsResponse: Codable {
+    let status: String
+    let generated: Int
+    let data: [AIInsight]
 }
 
 // MARK: - API response wrappers

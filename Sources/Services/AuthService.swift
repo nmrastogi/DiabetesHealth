@@ -8,6 +8,7 @@ class AuthService: ObservableObject {
     static let shared = AuthService()
 
     @Published var isSignedIn: Bool = false
+    @Published var isGuest: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
@@ -99,12 +100,51 @@ class AuthService: ObservableObject {
         isSignedIn = true
     }
 
+    // MARK: - Token Refresh
+
+    func refreshTokens() async throws {
+        guard let refreshToken = KeychainHelper.load(key: refreshKey) else {
+            throw AuthError.serverError("No refresh token — please sign in again.")
+        }
+
+        let url = cognitoURL()
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/x-amz-json-1.1", forHTTPHeaderField: "Content-Type")
+        req.setValue("AWSCognitoIdentityProviderService.InitiateAuth", forHTTPHeaderField: "X-Amz-Target")
+
+        let body: [String: Any] = [
+            "AuthFlow": "REFRESH_TOKEN_AUTH",
+            "ClientId": Config.cognitoClientID,
+            "AuthParameters": ["REFRESH_TOKEN": refreshToken]
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+        try assertHTTP200(data: data, response: response, context: "RefreshTokens")
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard
+            let result = json?["AuthenticationResult"] as? [String: Any],
+            let idToken = result["IdToken"] as? String
+        else { throw AuthError.invalidResponse }
+
+        KeychainHelper.save(key: tokenKey, value: idToken)
+    }
+
+    // MARK: - Guest
+
+    func continueAsGuest() {
+        isGuest = true
+    }
+
     // MARK: - Sign Out
 
     func signOut() {
         KeychainHelper.delete(key: tokenKey)
         KeychainHelper.delete(key: refreshKey)
         isSignedIn = false
+        isGuest = false
     }
 
     // MARK: - Private helpers

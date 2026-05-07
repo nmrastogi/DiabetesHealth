@@ -2,19 +2,43 @@ import SwiftUI
 
 struct InsightsView: View {
     @StateObject private var vm = InsightsViewModel()
+    @EnvironmentObject var auth: AuthService
 
     var body: some View {
         NavigationStack {
             Group {
-                if vm.isLoading {
+                if auth.isGuest {
+                    SignInPromptView()
+                        .navigationTitle("Insights")
+                } else if vm.isLoading {
                     ProgressView("Loading insights…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if vm.isGenerating {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .scaleEffect(1.3)
+                        Text("Syncing health data…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Claude is analyzing your data…")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if vm.insights.isEmpty {
-                    ContentUnavailableView(
-                        "No insights yet",
-                        systemImage: "brain.head.profile",
-                        description: Text("Insights are generated weekly once enough health data has been synced.")
-                    )
+                    VStack(spacing: 16) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("No insights yet")
+                            .font(.headline)
+                        Text("Tap Generate to create AI-powered insights from your health data.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(vm.insights) { insight in
                         InsightRow(insight: insight)
@@ -24,13 +48,20 @@ struct InsightsView: View {
             }
             .navigationTitle("Insights")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        Task { await vm.generate() }
+                    } label: {
+                        Label("Generate", systemImage: "sparkles")
+                    }
+                    .disabled(vm.isLoading || vm.isGenerating)
+
                     Button {
                         Task { await vm.load() }
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .disabled(vm.isLoading)
+                    .disabled(vm.isLoading || vm.isGenerating)
                 }
             }
             .task { await vm.load() }
@@ -112,6 +143,7 @@ struct InsightRow: View {
 class InsightsViewModel: ObservableObject {
     @Published var insights: [AIInsight] = []
     @Published var isLoading = false
+    @Published var isGenerating = false
     @Published var errorMessage: String?
 
     func load() async {
@@ -120,6 +152,18 @@ class InsightsViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             insights = try await APIService.shared.fetchInsights()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func generate() async {
+        isGenerating = true
+        errorMessage = nil
+        defer { isGenerating = false }
+        do {
+            let response = try await APIService.shared.generateInsights()
+            insights = response.data
         } catch {
             errorMessage = error.localizedDescription
         }

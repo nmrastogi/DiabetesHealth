@@ -34,6 +34,10 @@ class HealthKitService: ObservableObject {
 
     func syncAll() async {
         guard !isSyncing else { return }
+
+        // Skip if synced within the last 30 minutes
+        if let last = lastSyncDate, Date().timeIntervalSince(last) < 1800 { return }
+
         isSyncing = true
         errorMessage = nil
         defer { isSyncing = false }
@@ -47,6 +51,12 @@ class HealthKitService: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // Force sync ignores the 30-minute cooldown — used by the manual refresh button
+    func forceSyncAll() async {
+        lastSyncDate = nil
+        await syncAll()
     }
 
     // MARK: - Glucose
@@ -77,7 +87,6 @@ class HealthKitService: ObservableObject {
         let samples = try await fetchCategorySamples(type: type, days: Config.healthSyncDays)
 
         // Group samples by calendar date (night of sleep)
-        let cal = Calendar.current
         var grouped: [String: [HKCategorySample]] = [:]
         for s in samples {
             let key = dateString(s.startDate)

@@ -19,6 +19,7 @@
 		77FD3A769C96EA079ADD8D78 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F12287C41815590280A0C53F /* HealthKitService.swift */; };
 		78E3A5E42A5E0AE31CA05908 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7107611D4F69704D354F6F74 /* HealthKit.framework */; };
 		8D66120DC5B4DAD589D8D36B /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A88E3E5BAB138FBEDA90DB0 /* APIService.swift */; };
+		913D5F312FAC8F1C00525CBC /* Config.private.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913D5F302FAC8F1C00525CBC /* Config.private.swift */; };
 		B2560BF63F464897BFAC03FB /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F33E28AD351C271F0BCEE38B /* SignUpView.swift */; };
 		D79C9C8E48B7EC9EFACD42C4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724F85E425D0CFBEE6C518C9 /* Config.swift */; };
 		DF3054F26EB651BCEBC0464B /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA43711562C34F4DB4559916 /* ChatView.swift */; };
@@ -33,6 +34,7 @@
 		724F85E425D0CFBEE6C518C9 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		78EE3D40BC9C4318DCD96C4D /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		8F3907927794A880741DF60C /* DiabetesHealthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiabetesHealthApp.swift; sourceTree = "<group>"; };
+		913D5F302FAC8F1C00525CBC /* Config.private.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.private.swift; sourceTree = "<group>"; };
 		BA6453EC2B46880DEA53EB7F /* HealthData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthData.swift; sourceTree = "<group>"; };
 		BBCAAC3D7DC8D9E6DD293AD6 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		D5AB21DA0B77C6AEF5F5CA68 /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModel.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 		B857F9D4D92D3CF68B505B55 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				913D5F302FAC8F1C00525CBC /* Config.private.swift */,
 				724F85E425D0CFBEE6C518C9 /* Config.swift */,
 			);
 			path = Config;
@@ -238,6 +241,7 @@
 				51C1BD5C71B2948B9F6A7A49 /* LoginView.swift in Sources */,
 				B2560BF63F464897BFAC03FB /* SignUpView.swift in Sources */,
 				16DC47CCE5DF43DB6B1CF28E /* UserModel.swift in Sources */,
+				913D5F312FAC8F1C00525CBC /* Config.private.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

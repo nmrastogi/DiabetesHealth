@@ -2,10 +2,16 @@ import SwiftUI
 
 struct ChatView: View {
     @StateObject private var vm = ChatViewModel()
+    @EnvironmentObject var auth: AuthService
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
         NavigationStack {
+            if auth.isGuest {
+                SignInPromptView()
+                    .navigationTitle("Chat")
+                    .navigationBarTitleDisplayMode(.inline)
+            } else {
             VStack(spacing: 0) {
                 // Message list
                 ScrollViewReader { proxy in
@@ -24,12 +30,12 @@ struct ChatView: View {
                         }
                         .padding()
                     }
-                    .onChange(of: vm.messages.count) { _, _ in
+                    .onChange(of: vm.messages.count) { _ in
                         if let last = vm.messages.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
-                    .onChange(of: vm.isThinking) { _, thinking in
+                    .onChange(of: vm.isThinking) { thinking in
                         if thinking {
                             withAnimation { proxy.scrollTo("thinking", anchor: .bottom) }
                         }
@@ -65,6 +71,7 @@ struct ChatView: View {
                         .disabled(vm.messages.isEmpty)
                 }
             }
+            } // end guest else
         }
     }
 
@@ -101,15 +108,62 @@ struct MessageBubble: View {
     var body: some View {
         HStack {
             if message.role == .user { Spacer(minLength: 48) }
-            Text(message.content)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(message.role == .user ? Color.blue : Color(.secondarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 18))
-                .foregroundStyle(message.role == .user ? .white : .primary)
-                .font(.subheadline)
+            VStack(alignment: message.role == .assistant ? .leading : .trailing, spacing: 6) {
+                Text(message.content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(message.role == .user ? Color.blue : Color(.secondarySystemBackground),
+                                in: RoundedRectangle(cornerRadius: 18))
+                    .foregroundStyle(message.role == .user ? .white : .primary)
+                    .font(.subheadline)
+                if message.role == .assistant, let tools = message.toolsUsed, !tools.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(tools, id: \.self) { ToolChip(toolName: $0) }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                }
+            }
             if message.role == .assistant { Spacer(minLength: 48) }
         }
+    }
+}
+
+struct ToolChip: View {
+    let toolName: String
+
+    private var label: String {
+        switch toolName {
+        case "get_glucose_data":  return "Glucose Data"
+        case "get_sleep_data":    return "Sleep Data"
+        case "get_exercise_data": return "Exercise Data"
+        case "detect_patterns":   return "Patterns"
+        case "find_correlations": return "Correlations"
+        default: return toolName.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+
+    private var icon: String {
+        switch toolName {
+        case "get_glucose_data":  return "drop.fill"
+        case "get_sleep_data":    return "moon.zzz.fill"
+        case "get_exercise_data": return "figure.run"
+        case "detect_patterns":   return "waveform.path.ecg"
+        case "find_correlations": return "arrow.triangle.branch"
+        default: return "wrench.and.screwdriver"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.caption2)
+            Text(label).font(.caption2)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        .foregroundStyle(Color.purple)
     }
 }
 
@@ -175,12 +229,18 @@ class ChatViewModel: ObservableObject {
         messages.append(ChatMessage(role: .user, content: trimmed))
         isThinking = true
 
+        let history = messages.dropLast().map {
+            ["role": $0.role == .user ? "user" : "assistant", "content": $0.content]
+        }
+
         Task {
             do {
-                let answer = try await APIService.shared.sendChat(question: trimmed)
-                messages.append(ChatMessage(role: .assistant, content: answer))
+                let response = try await APIService.shared.sendChat(question: trimmed, history: history)
+                messages.append(ChatMessage(role: .assistant, content: response.answer,
+                                            toolsUsed: response.toolsUsed))
             } catch {
-                messages.append(ChatMessage(role: .assistant, content: "Sorry, I couldn't reach the server. Please try again."))
+                messages.append(ChatMessage(role: .assistant,
+                                            content: "Sorry, I couldn't reach the server. Please try again."))
             }
             isThinking = false
         }

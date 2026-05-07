@@ -52,7 +52,9 @@ struct SignUpView: View {
                     do {
                         try await auth.signUp(email: email, password: password)
                         navigateToConfirm = true
-                    } catch {}
+                    } catch {
+                        auth.errorMessage = error.localizedDescription
+                    }
                 }
             } label: {
                 Group {

@@ -46,7 +46,13 @@ struct LoginView: View {
 
                 // Sign In
                 Button {
-                    Task { try? await auth.signIn(email: email, password: password) }
+                    Task {
+                        do {
+                            try await auth.signIn(email: email, password: password)
+                        } catch {
+                            auth.errorMessage = error.localizedDescription
+                        }
+                    }
                 } label: {
                     Group {
                         if auth.isLoading {
@@ -67,6 +73,12 @@ struct LoginView: View {
                     showSignUp = true
                 }
                 .font(.footnote)
+
+                Button("Continue without account") {
+                    auth.continueAsGuest()
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
 
                 Spacer()
             }
