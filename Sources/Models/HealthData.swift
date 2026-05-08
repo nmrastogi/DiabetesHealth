@@ -128,14 +128,18 @@ struct DashboardSummary: Codable {
 // MARK: - AI Insight
 
 struct AIInsight: Codable, Identifiable {
-    let id: Int?
+    let serverID: Int?
     let insightType: String
     let weekStart: String?
     let content: String
     let createdAt: String?
 
+    // Always-unique ID for SwiftUI — avoids nil collision when serverID isn't present
+    var id: String { serverID.map(String.init) ?? "\(insightType)-\(content.hashValue)" }
+
     enum CodingKeys: String, CodingKey {
-        case id, content
+        case serverID    = "id"
+        case content
         case insightType = "insight_type"
         case weekStart   = "week_start"
         case createdAt   = "created_at"
