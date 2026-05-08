@@ -1,12 +1,50 @@
 import Foundation
 
-// Handles both ISO8601 (T/Z) and MySQL datetime (space separator, UTC)
-private func parseHealthDate(_ string: String) -> Date {
-    if let d = ISO8601DateFormatter().date(from: string) { return d }
+// ISO8601 + fractional seconds + timezone  →  "2026-05-07T14:23:45.123456Z"
+private let _isoFractionalFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
+// ISO8601 + timezone, no fractional seconds  →  "2026-05-07T14:23:45Z"
+private let _isoFormatter = ISO8601DateFormatter()
+// ISO8601 no timezone, fractional seconds  →  "2026-05-07T14:23:45.123456" (Python isoformat() without tz)
+private let _isoNoTZFractionalFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f
+}()
+// ISO8601 no timezone  →  "2026-05-07T14:23:45"
+private let _isoNoTZFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f
+}()
+// MySQL DATETIME with microseconds  →  "2026-05-07 14:23:45.123456"
+private let _mysqlFractionalFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f
+}()
+// MySQL DATETIME  →  "2026-05-07 14:23:45"
+private let _mysqlFormatter: DateFormatter = {
     let f = DateFormatter()
     f.dateFormat = "yyyy-MM-dd HH:mm:ss"
     f.timeZone = TimeZone(identifier: "UTC")
-    return f.date(from: string) ?? Date()
+    return f
+}()
+
+private func parseHealthDate(_ string: String) -> Date {
+    _isoFractionalFormatter.date(from: string)
+        ?? _isoFormatter.date(from: string)
+        ?? _isoNoTZFractionalFormatter.date(from: string)
+        ?? _isoNoTZFormatter.date(from: string)
+        ?? _mysqlFractionalFormatter.date(from: string)
+        ?? _mysqlFormatter.date(from: string)
+        ?? Date()
 }
 
 // MARK: - Glucose
@@ -46,11 +84,12 @@ struct SleepRecord: Codable, Identifiable {
 
     var durationHours: Double { Double(sleepDurationMinutes ?? 0) / 60.0 }
 
-    var parsedDate: Date {
+    var parsedDate: Date { SleepRecord.df.date(from: date) ?? Date() }
+    private static let df: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: date) ?? Date()
-    }
+        return f
+    }()
 }
 
 // MARK: - Exercise
@@ -72,28 +111,28 @@ struct ExerciseRecord: Codable, Identifiable {
 
 struct DashboardSummary: Codable {
     let avgGlucose: Double?
-    let timeInRange: Double?         // percentage 70-180 mg/dL
+    let timeInRange: Double?
     let avgSleepHours: Double?
     let totalExerciseMinutes: Int?
-    let periodDays: Int
+    let periodDays: Int?
 
     enum CodingKeys: String, CodingKey {
-        case avgGlucose         = "avg_glucose"
-        case timeInRange        = "time_in_range"
-        case avgSleepHours      = "avg_sleep_hours"
+        case avgGlucose           = "avg_glucose"
+        case timeInRange          = "time_in_range"
+        case avgSleepHours        = "avg_sleep_hours"
         case totalExerciseMinutes = "total_exercise_minutes"
-        case periodDays         = "period_days"
+        case periodDays           = "period_days"
     }
 }
 
 // MARK: - AI Insight
 
 struct AIInsight: Codable, Identifiable {
-    let id: Int
+    let id: Int?
     let insightType: String
     let weekStart: String?
     let content: String
-    let createdAt: String
+    let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id, content
@@ -138,7 +177,7 @@ struct ChatResponse: Codable {
 
 struct GenerateInsightsResponse: Codable {
     let status: String
-    let generated: Int
+    let generated: Int?
     let data: [AIInsight]
 }
 
@@ -146,13 +185,19 @@ struct GenerateInsightsResponse: Codable {
 
 struct ListResponse<T: Codable>: Codable {
     let status: String
-    let total: Int
+    let total: Int?
     let data: [T]
 }
 
 struct SingleResponse<T: Codable>: Codable {
     let status: String
     let data: T
+}
+
+struct IngestResponse: Codable {
+    let status: String
+    let saved: Int?
+    let message: String?
 }
 
 // MARK: - Ingest payloads (sent to backend from HealthKit)
@@ -182,6 +227,7 @@ struct SleepIngestPayload: Codable {
         let deep: Double?
         let core: Double?
         let rem: Double?
+
     }
     struct Metric: Codable {
         let name: String
@@ -198,6 +244,7 @@ struct ExerciseIngestPayload: Codable {
         let start: String
         let duration: Double?
         let workoutName: String?
+
     }
     struct DataWrapper: Codable {
         let workouts: [Workout]

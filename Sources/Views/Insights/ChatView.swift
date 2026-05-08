@@ -109,13 +109,19 @@ struct MessageBubble: View {
         HStack {
             if message.role == .user { Spacer(minLength: 48) }
             VStack(alignment: message.role == .assistant ? .leading : .trailing, spacing: 6) {
-                Text(message.content)
+                Group {
+                    if message.role == .assistant {
+                        MarkdownText(content: message.content)
+                    } else {
+                        Text(message.content)
+                            .font(.subheadline)
+                    }
+                }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(message.role == .user ? Color.blue : Color(.secondarySystemBackground),
                                 in: RoundedRectangle(cornerRadius: 18))
                     .foregroundStyle(message.role == .user ? .white : .primary)
-                    .font(.subheadline)
                 if message.role == .assistant, let tools = message.toolsUsed, !tools.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {

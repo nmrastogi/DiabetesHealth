@@ -37,6 +37,50 @@ struct SignInPromptView: View {
     }
 }
 
+// MARK: - Shared markdown renderer (used by ChatView and InsightsView)
+
+struct MarkdownText: View {
+    let content: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(content.components(separatedBy: "\n").enumerated()), id: \.offset) { _, line in
+                lineView(for: line)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func lineView(for line: String) -> some View {
+        if line.hasPrefix("## ") {
+            Text(line.dropFirst(3))
+                .font(.subheadline).fontWeight(.bold)
+                .padding(.top, 4)
+        } else if line.hasPrefix("### ") {
+            Text(line.dropFirst(4))
+                .font(.subheadline).fontWeight(.semibold)
+                .padding(.top, 2)
+        } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
+            HStack(alignment: .top, spacing: 6) {
+                Text("•").font(.subheadline)
+                inlineText(String(line.dropFirst(2)))
+            }
+        } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
+            Spacer().frame(height: 2)
+        } else {
+            inlineText(line)
+        }
+    }
+
+    private func inlineText(_ text: String) -> Text {
+        if let attr = try? AttributedString(markdown: text) {
+            return Text(attr).font(.subheadline)
+        }
+        return Text(text).font(.subheadline)
+    }
+}
+
 struct MainTabView: View {
     var body: some View {
         TabView {

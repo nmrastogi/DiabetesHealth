@@ -1,9 +1,18 @@
-# Xcode
+# Xcode — user data (never commit these)
+xcuserdata/
+*.xcuserstate
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
-*.xcworkspace/xcshareddata/
+
+# Xcode — build artifacts
 DerivedData/
+build/
 .build/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Xcode — legacy index/misc
 *.moved-aside
 *.pbxuser
 !default.pbxuser
@@ -16,12 +25,8 @@ DerivedData/
 *.xccheckout
 *.xcscmblueprint
 *.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-build/
 
-# SPM
+# Swift Package Manager
 .swiftpm/xcode/package.xcworkspace/xcuserdata/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/xcuserdata/
@@ -39,4 +44,5 @@ Podfile.lock
 .AppleDouble
 .LSOverride
 
+# Planning/temp
 AGENT_PLAN.md

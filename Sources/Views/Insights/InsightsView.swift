@@ -120,22 +120,22 @@ struct InsightRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Text(insight.content)
-                .font(.subheadline)
+            MarkdownText(content: insight.content)
                 .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 4)
     }
 
+    private static let inFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let outFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .none; return f
+    }()
+
     private func formattedWeek(_ dateStr: String) -> String {
-        let iso = DateFormatter()
-        iso.dateFormat = "yyyy-MM-dd"
-        guard let date = iso.date(from: dateStr) else { return dateStr }
-        let out = DateFormatter()
-        out.dateStyle = .medium
-        out.timeStyle = .none
-        return out.string(from: date)
+        guard let d = Self.inFmt.date(from: dateStr) else { return dateStr }
+        return Self.outFmt.string(from: d)
     }
 }
 

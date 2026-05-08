@@ -3,6 +3,7 @@ import Charts
 
 struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
+    @EnvironmentObject var auth: AuthService
 
     var body: some View {
         NavigationStack {
@@ -38,7 +39,9 @@ struct DashboardView: View {
                             )
                             SummaryCard(
                                 title: "Avg Sleep",
-                                value: summary.avgSleepHours.map { String(format: "%.1fh", $0) } ?? "—",
+                                value: summary.avgSleepHours.map {
+                                    $0 > 24 ? "—" : String(format: "%.1fh", $0)
+                                } ?? "—",
                                 unit: "per night",
                                 color: .indigo,
                                 icon: "moon.zzz.fill"
@@ -46,7 +49,7 @@ struct DashboardView: View {
                             SummaryCard(
                                 title: "Exercise",
                                 value: summary.totalExerciseMinutes.map { "\($0)m" } ?? "—",
-                                unit: "last \(summary.periodDays)d",
+                                unit: "last \(summary.periodDays ?? 7)d",
                                 color: .green,
                                 icon: "figure.run"
                             )
@@ -56,77 +59,6 @@ struct DashboardView: View {
                             .frame(maxWidth: .infinity, minHeight: 150)
                     }
 
-                    // Glucose chart
-                    if !vm.glucoseRecords.isEmpty {
-                        ChartCard(title: "Glucose (7 days)") {
-                            Chart(vm.glucoseRecords) { record in
-                                LineMark(
-                                    x: .value("Time", record.date),
-                                    y: .value("mg/dL", record.value)
-                                )
-                                .foregroundStyle(.blue)
-                                PointMark(
-                                    x: .value("Time", record.date),
-                                    y: .value("mg/dL", record.value)
-                                )
-                                .foregroundStyle(.blue)
-                            }
-                            .chartYScale(domain: 60...300)
-                            .chartXScale(domain: Date().addingTimeInterval(-7 * 86400)...Date())
-                            .chartXAxis {
-                                AxisMarks(values: .stride(by: .day)) { _ in
-                                    AxisGridLine()
-                                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                                }
-                            }
-                            // Target range band
-                            .chartBackground { proxy in
-                                GeometryReader { geo in
-                                    if let minY = proxy.position(forY: 180),
-                                       let maxY = proxy.position(forY: 70) {
-                                        Rectangle()
-                                            .fill(Color.green.opacity(0.08))
-                                            .frame(height: maxY - minY)
-                                            .offset(y: minY)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Sleep chart
-                    if !vm.sleepRecords.isEmpty {
-                        ChartCard(title: "Sleep (7 days)") {
-                            Chart(vm.dailySleepHours, id: \.0) { (date, hours) in
-                                BarMark(
-                                    x: .value("Date", date, unit: .day),
-                                    y: .value("Hours", hours)
-                                )
-                                .foregroundStyle(hours >= 7 ? Color.indigo : Color.orange)
-                                .cornerRadius(4)
-                            }
-                            .chartYScale(domain: 0...12)
-                            .chartXScale(domain: Date().addingTimeInterval(-7 * 86400)...Date())
-                            .chartXAxis {
-                                AxisMarks(values: .stride(by: .day)) { _ in
-                                    AxisGridLine()
-                                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                                }
-                            }
-                            .chartYAxis {
-                                AxisMarks(values: [0, 4, 7, 8, 12]) { value in
-                                    AxisGridLine()
-                                    AxisValueLabel {
-                                        if let h = value.as(Double.self) {
-                                            Text(h == 7 ? "Goal" : "\(Int(h))h")
-                                                .font(.caption2)
-                                                .foregroundStyle(h == 7 ? Color.green : Color.primary)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
 
                     if let error = vm.errorMessage {
                         Text(error)
@@ -149,7 +81,15 @@ struct DashboardView: View {
                     .disabled(vm.isSyncing)
                 }
             }
-            .task { await vm.loadAll() }
+            .task {
+                if !auth.isGuest {
+                    await HealthKitService.shared.syncAll()
+                }
+                await vm.loadAll()
+                if vm.errorMessage == nil, let hkErr = HealthKitService.shared.errorMessage {
+                    vm.errorMessage = hkErr
+                }
+            }
         }
     }
 
@@ -218,20 +158,34 @@ struct ChartCard<Content: View>: View {
 class DashboardViewModel: ObservableObject {
     @Published var summary: DashboardSummary?
     @Published var glucoseRecords: [GlucoseRecord] = []
-    @Published var sleepRecords: [SleepRecord] = []
+
+    // Sampled to ≤500 points for chart rendering — avoids hanging on 37K+ duplicate records
+    var sampledGlucoseRecords: [GlucoseRecord] {
+        let stride = max(1, glucoseRecords.count / 500)
+        return stride == 1 ? glucoseRecords : glucoseRecords.enumerated()
+            .filter { $0.offset % stride == 0 }.map { $0.element }
+    }
+    @Published var sleepRecords: [SleepRecord] = [] { didSet { _dailySleepCache = nil } }
+    private var _dailySleepCache: [(Date, Double)]?
     @Published var isLoading = false
     @Published var isSyncing = false
     @Published var errorMessage: String?
 
-    // Aggregated sleep: one (Date, totalHours) per calendar day
+    // Aggregated sleep: best (highest, capped at 14h) per calendar day.
     var dailySleepHours: [(Date, Double)] {
-        var totals: [String: (Date, Double)] = [:]
+        if let c = _dailySleepCache { return c }
+        var bests: [String: (Date, Double)] = [:]
         for r in sleepRecords {
-            let key = r.date
-            let existing = totals[key]?.1 ?? 0
-            totals[key] = (r.parsedDate, existing + r.durationHours)
+            let clamped = min(r.durationHours, 14)
+            guard clamped > 0 else { continue }
+            let current = bests[r.date]?.1 ?? 0
+            if clamped > current {
+                bests[r.date] = (r.parsedDate, clamped)
+            }
         }
-        return totals.values.sorted { $0.0 < $1.0 }
+        let result = bests.values.sorted { $0.0 < $1.0 }
+        _dailySleepCache = result
+        return result
     }
 
     func loadAll() async {
@@ -253,8 +207,12 @@ class DashboardViewModel: ObservableObject {
 
     func sync() async {
         isSyncing = true
+        errorMessage = nil
         defer { isSyncing = false }
         await HealthKitService.shared.forceSyncAll()
+        if let hkErr = HealthKitService.shared.errorMessage {
+            errorMessage = hkErr
+        }
         await loadAll()
     }
 }

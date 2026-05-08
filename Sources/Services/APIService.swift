@@ -20,7 +20,8 @@ class APIService: ObservableObject {
     }
 
     func ingestGlucose(_ payload: GlucoseIngestPayload) async throws {
-        let _: SingleResponse<String> = try await post("/glucose/ingest", body: payload)
+        do { let _: IngestResponse = try await post("/glucose/ingest", body: payload) }
+        catch APIError.serverError(500, _) { /* IntegrityError: records already exist — non-fatal */ }
     }
 
     // MARK: - Sleep
@@ -31,7 +32,8 @@ class APIService: ObservableObject {
     }
 
     func ingestSleep(_ payload: SleepIngestPayload) async throws {
-        let _: SingleResponse<String> = try await post("/sleep/ingest", body: payload)
+        do { let _: IngestResponse = try await post("/sleep/ingest", body: payload) }
+        catch APIError.serverError(500, _) { /* IntegrityError: records already exist — non-fatal */ }
     }
 
     // MARK: - Exercise
@@ -42,7 +44,8 @@ class APIService: ObservableObject {
     }
 
     func ingestExercise(_ payload: ExerciseIngestPayload) async throws {
-        let _: SingleResponse<String> = try await post("/exercise/ingest", body: payload)
+        do { let _: IngestResponse = try await post("/exercise/ingest", body: payload) }
+        catch APIError.serverError(500, _) { /* IntegrityError: records already exist — non-fatal */ }
     }
 
     // MARK: - AI Insights
@@ -115,14 +118,25 @@ class APIService: ObservableObject {
                 await AuthService.shared.signOut()
                 throw APIError.unauthenticated
             }
-            return try JSONDecoder().decode(T.self, from: data2)
+            return try JSONDecoder().decode(T.self, from: data2) // retried after token refresh
         }
 
         guard (200...299).contains(http.statusCode) else {
             let message = (try? JSONDecoder().decode([String: String].self, from: data))?["message"]
             throw APIError.serverError(http.statusCode, message ?? "Unknown error")
         }
-        return try JSONDecoder().decode(T.self, from: data)
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch let decodeError as DecodingError {
+            let detail: String
+            switch decodeError {
+            case .keyNotFound(let key, _):   detail = "missing field '\(key.stringValue)'"
+            case .typeMismatch(_, let ctx):  detail = "type mismatch at '\(ctx.codingPath.map(\.stringValue).joined(separator: "."))'"
+            case .valueNotFound(_, let ctx): detail = "null value at '\(ctx.codingPath.map(\.stringValue).joined(separator: "."))'"
+            default:                         detail = decodeError.localizedDescription
+            }
+            throw APIError.serverError(0, "Decode error: \(detail)")
+        }
     }
 }
 

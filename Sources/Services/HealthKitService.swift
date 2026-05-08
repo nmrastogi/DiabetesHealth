@@ -12,6 +12,7 @@ class HealthKitService: ObservableObject {
     @Published var errorMessage: String?
 
     private let store = HKHealthStore()
+    private var didRequestAuthorization = false
 
     private let readTypes: Set<HKObjectType> = {
         var types = Set<HKObjectType>()
@@ -43,14 +44,27 @@ class HealthKitService: ObservableObject {
         defer { isSyncing = false }
 
         do {
-            async let glucose  = syncGlucose()
-            async let sleep    = syncSleep()
-            async let exercise = syncExercise()
-            _ = try await (glucose, sleep, exercise)
-            lastSyncDate = Date()
+            if !didRequestAuthorization {
+                try await requestAuthorization()
+                didRequestAuthorization = true
+            }
         } catch {
             errorMessage = error.localizedDescription
+            return
         }
+
+        // Run each sync independently — one failure must not block the others
+        async let glucose  = syncGlucose()
+        async let sleep    = syncSleep()
+        async let exercise = syncExercise()
+
+        var errors: [String] = []
+        do { try await glucose  } catch { errors.append("glucose: \(error.localizedDescription)") }
+        do { try await sleep    } catch { errors.append("sleep: \(error.localizedDescription)") }
+        do { try await exercise } catch { errors.append("exercise: \(error.localizedDescription)") }
+
+        lastSyncDate = Date()
+        if !errors.isEmpty { errorMessage = errors.joined(separator: "\n") }
     }
 
     // Force sync ignores the 30-minute cooldown — used by the manual refresh button
@@ -96,18 +110,22 @@ class HealthKitService: ObservableObject {
         let items: [SleepIngestPayload.SleepItem] = grouped.map { (date, group) in
             let start = group.map(\.startDate).min()
             let end   = group.map(\.endDate).max()
-            let totalMins = group.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) } / 60.0
 
             var deep: Double = 0; var core: Double = 0; var rem: Double = 0
             for s in group {
                 let mins = s.endDate.timeIntervalSince(s.startDate) / 60.0
                 switch HKCategoryValueSleepAnalysis(rawValue: s.value) {
-                case .asleepDeep:  deep += mins
-                case .asleepCore:  core += mins
-                case .asleepREM:   rem  += mins
-                default: break
+                case .asleepDeep:        deep += mins
+                case .asleepCore:        core += mins
+                case .asleepREM:         rem  += mins
+                case .asleepUnspecified: core += mins  // treat unspecified as core
+                default: break  // skip .inBed and .awake — they overlap with sleep stages
                 }
             }
+            // Use sum of non-overlapping sleep stages; fall back to inBed window if no stage data
+            let stageMins = deep + core + rem
+            let totalMins = stageMins > 0 ? stageMins :
+                (end.flatMap { e in start.map { s in e.timeIntervalSince(s) / 60.0 } } ?? 0)
             return SleepIngestPayload.SleepItem(
                 date: date,
                 inBedStart: start.map(iso),
@@ -179,15 +197,21 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Date helpers
 
-    private func iso(_ date: Date) -> String {
-        ISO8601DateFormatter().string(from: date)
-    }
+    private let mysqlFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
 
-    private func dateString(_ date: Date) -> String {
+    private let dateOnlyFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
+        return f
+    }()
+
+    private func iso(_ date: Date) -> String { mysqlFormatter.string(from: date) }
+    private func dateString(_ date: Date) -> String { dateOnlyFormatter.string(from: date) }
 }
 
 // MARK: - HKWorkoutActivityType name
