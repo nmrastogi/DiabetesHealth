@@ -54,6 +54,28 @@ struct DashboardView: View {
                                 icon: "figure.run"
                             )
                         }
+
+                        if !vm.sampledGlucoseRecords.isEmpty {
+                            ChartCard(title: "Glucose (mg/dL)") {
+                                Chart {
+                                    ForEach(vm.sampledGlucoseRecords.sorted { $0.date < $1.date }) { r in
+                                        LineMark(
+                                            x: .value("Time", r.date),
+                                            y: .value("mg/dL", r.value)
+                                        )
+                                        .foregroundStyle(.blue)
+                                        .interpolationMethod(.catmullRom)
+                                    }
+                                    RuleMark(y: .value("Target Low", 70))
+                                        .foregroundStyle(.green.opacity(0.6))
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                    RuleMark(y: .value("Target High", 180))
+                                        .foregroundStyle(.orange.opacity(0.6))
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                }
+                                .chartYScale(domain: 40...350)
+                            }
+                        }
                     } else if vm.isLoading {
                         ProgressView("Loading…")
                             .frame(maxWidth: .infinity, minHeight: 150)
@@ -70,6 +92,7 @@ struct DashboardView: View {
                 }
                 .padding()
             }
+            .refreshable { await vm.sync() }
             .navigationTitle("Dashboard")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -79,6 +102,13 @@ struct DashboardView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .disabled(vm.isSyncing)
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    if let summary = vm.summary, let start = summary.dataStart, let end = summary.dataEnd {
+                        Text("Data: \(shortDate(start)) – \(shortDate(end))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .task {
@@ -91,6 +121,16 @@ struct DashboardView: View {
                 }
             }
         }
+    }
+
+    private func shortDate(_ iso: String) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        f.timeZone = TimeZone(identifier: "UTC")
+        guard let d = f.date(from: String(iso.prefix(19))) else { return iso }
+        let out = DateFormatter()
+        out.dateFormat = "MMM d"
+        return out.string(from: d)
     }
 
     private func glucoseColor(_ val: Double?) -> Color {
@@ -133,6 +173,8 @@ struct SummaryCard: View {
         }
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value) \(unit)")
     }
 }
 
@@ -157,16 +199,21 @@ struct ChartCard<Content: View>: View {
 @MainActor
 class DashboardViewModel: ObservableObject {
     @Published var summary: DashboardSummary?
-    @Published var glucoseRecords: [GlucoseRecord] = []
+    @Published var glucoseRecords: [GlucoseRecord] = [] { didSet { _sampledGlucoseCache = nil } }
+    private var _sampledGlucoseCache: [GlucoseRecord]?
 
     // Sampled to ≤500 points for chart rendering — avoids hanging on 37K+ duplicate records
     var sampledGlucoseRecords: [GlucoseRecord] {
+        if let c = _sampledGlucoseCache { return c }
         let stride = max(1, glucoseRecords.count / 500)
-        return stride == 1 ? glucoseRecords : glucoseRecords.enumerated()
+        let result = stride == 1 ? glucoseRecords : glucoseRecords.enumerated()
             .filter { $0.offset % stride == 0 }.map { $0.element }
+        _sampledGlucoseCache = result
+        return result
     }
     @Published var sleepRecords: [SleepRecord] = [] { didSet { _dailySleepCache = nil } }
     private var _dailySleepCache: [(Date, Double)]?
+    private var lastFetchDate: Date?
     @Published var isLoading = false
     @Published var isSyncing = false
     @Published var errorMessage: String?
@@ -188,7 +235,8 @@ class DashboardViewModel: ObservableObject {
         return result
     }
 
-    func loadAll() async {
+    func loadAll(force: Bool = false) async {
+        if !force, let last = lastFetchDate, Date().timeIntervalSince(last) < 300 { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -200,6 +248,7 @@ class DashboardViewModel: ObservableObject {
             self.summary = summary
             self.glucoseRecords = glucose
             self.sleepRecords = sleep
+            lastFetchDate = Date()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -213,6 +262,6 @@ class DashboardViewModel: ObservableObject {
         if let hkErr = HealthKitService.shared.errorMessage {
             errorMessage = hkErr
         }
-        await loadAll()
+        await loadAll(force: true)
     }
 }

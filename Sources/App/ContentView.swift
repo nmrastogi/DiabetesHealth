@@ -84,6 +84,10 @@ struct MarkdownText: View {
 struct MainTabView: View {
     var body: some View {
         TabView {
+            ChatView()
+                .tabItem {
+                    Label("Chat", systemImage: "bubble.left.and.bubble.right.fill")
+                }
             DashboardView()
                 .tabItem {
                     Label("Dashboard", systemImage: "chart.bar.fill")
@@ -91,10 +95,6 @@ struct MainTabView: View {
             InsightsView()
                 .tabItem {
                     Label("Insights", systemImage: "brain.head.profile")
-                }
-            ChatView()
-                .tabItem {
-                    Label("Chat", systemImage: "bubble.left.and.bubble.right.fill")
                 }
         }
     }

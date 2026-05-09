@@ -115,6 +115,8 @@ struct DashboardSummary: Codable {
     let avgSleepHours: Double?
     let totalExerciseMinutes: Int?
     let periodDays: Int?
+    let dataStart: String?
+    let dataEnd: String?
 
     enum CodingKeys: String, CodingKey {
         case avgGlucose           = "avg_glucose"
@@ -122,6 +124,8 @@ struct DashboardSummary: Codable {
         case avgSleepHours        = "avg_sleep_hours"
         case totalExerciseMinutes = "total_exercise_minutes"
         case periodDays           = "period_days"
+        case dataStart            = "data_start"
+        case dataEnd              = "data_end"
     }
 }
 

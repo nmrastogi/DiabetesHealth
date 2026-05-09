@@ -88,6 +88,7 @@ struct ChatView: View {
                 SuggestionChip("What was my average glucose last week?") { vm.send($0) }
                 SuggestionChip("How is my sleep affecting my glucose?") { vm.send($0) }
                 SuggestionChip("Summarize my health trends this month.") { vm.send($0) }
+                SuggestionChip("/sync  —  sync latest health data") { _ in vm.send("/sync") }
             }
         }
         .padding(.top, 60)
@@ -170,6 +171,7 @@ struct ToolChip: View {
         .padding(.vertical, 4)
         .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
         .foregroundStyle(Color.purple)
+        .accessibilityLabel(label)
     }
 }
 
@@ -192,6 +194,7 @@ struct ThinkingBubble: View {
             .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
             .id("thinking")
             .onAppear { phase = 2 }
+            .accessibilityLabel("Claude is thinking")
             Spacer(minLength: 48)
         }
     }
@@ -232,6 +235,12 @@ class ChatViewModel: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         inputText = ""
+
+        if trimmed.lowercased() == "/sync" {
+            handleSyncCommand()
+            return
+        }
+
         messages.append(ChatMessage(role: .user, content: trimmed))
         isThinking = true
 
@@ -248,6 +257,19 @@ class ChatViewModel: ObservableObject {
                 messages.append(ChatMessage(role: .assistant,
                                             content: "Sorry, I couldn't reach the server. Please try again."))
             }
+            isThinking = false
+        }
+    }
+
+    private func handleSyncCommand() {
+        messages.append(ChatMessage(role: .user, content: "/sync"))
+        isThinking = true
+        Task {
+            await HealthKitService.shared.forceSyncAll()
+            let reply = HealthKitService.shared.errorMessage == nil
+                ? "Health data synced successfully."
+                : "Sync completed with errors: \(HealthKitService.shared.errorMessage!)"
+            messages.append(ChatMessage(role: .assistant, content: reply))
             isThinking = false
         }
     }

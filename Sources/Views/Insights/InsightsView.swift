@@ -44,6 +44,7 @@ struct InsightsView: View {
                         InsightRow(insight: insight)
                     }
                     .listStyle(.insetGrouped)
+                    .refreshable { await vm.load(force: true) }
                 }
             }
             .navigationTitle("Insights")
@@ -145,13 +146,16 @@ class InsightsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isGenerating = false
     @Published var errorMessage: String?
+    private var lastFetchDate: Date?
 
-    func load() async {
+    func load(force: Bool = false) async {
+        if !force, let last = lastFetchDate, Date().timeIntervalSince(last) < 300 { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
             insights = try await APIService.shared.fetchInsights()
+            lastFetchDate = Date()
         } catch {
             errorMessage = error.localizedDescription
         }

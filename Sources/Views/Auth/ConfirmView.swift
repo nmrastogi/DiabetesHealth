@@ -50,7 +50,9 @@ struct ConfirmView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                             dismiss()
                         }
-                    } catch {}
+                    } catch {
+                        auth.errorMessage = error.localizedDescription
+                    }
                 }
             } label: {
                 Group {
