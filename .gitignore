@@ -34,6 +34,14 @@ build/
 # Secrets
 Config.private.swift
 Secrets.swift
+Backend/.env
+
+# Backend build artifacts
+Backend/dist/
+Backend/venv/
+Backend/__pycache__/
+Backend/lambda_package.zip
+Backend/**/__pycache__/
 
 # CocoaPods
 Pods/
