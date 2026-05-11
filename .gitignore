@@ -1,8 +1,10 @@
-# Xcode — user data (never commit these)
+# Xcode — generated project (source of truth is project.yml — run `xcodegen generate`)
+*.xcodeproj/
+*.xcworkspace/
+
+# Xcode — user data
 xcuserdata/
 *.xcuserstate
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
 
 # Xcode — build artifacts
 DerivedData/

@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Diabeto</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,10 +20,12 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>DiabetesHealth reads your glucose, sleep, and exercise data to generate personalised health insights.</string>
+	<string>Diabeto reads your glucose, sleep, and exercise data to generate personalised health insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>DiabetesHealth does not write any data to HealthKit.</string>
+	<string>Diabeto does not write any data to HealthKit.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -4,6 +4,15 @@ import Foundation
 @MainActor
 class APIService: ObservableObject {
     static let shared = APIService()
+
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest  = 15
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = true
+        return URLSession(configuration: config)
+    }()
+
     private init() {}
 
     // MARK: - Dashboard
@@ -98,7 +107,7 @@ class APIService: ObservableObject {
     }
 
     private func execute<T: Decodable>(_ req: URLRequest) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }

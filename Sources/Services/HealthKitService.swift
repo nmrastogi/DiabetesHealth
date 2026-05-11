@@ -10,6 +10,7 @@ class HealthKitService: ObservableObject {
     @Published var isSyncing = false
     @Published var lastSyncDate: Date?
     @Published var errorMessage: String?
+    @Published var healthKitDenied = false
 
     private let store = HKHealthStore()
     private var didRequestAuthorization = false
@@ -29,6 +30,10 @@ class HealthKitService: ObservableObject {
     func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         try await store.requestAuthorization(toShare: [], read: readTypes)
+        let glucoseType = HKObjectType.quantityType(forIdentifier: .bloodGlucose)!
+        if store.authorizationStatus(for: glucoseType) == .sharingDenied {
+            healthKitDenied = true
+        }
     }
 
     // MARK: - Full sync
@@ -71,6 +76,11 @@ class HealthKitService: ObservableObject {
     func forceSyncAll() async {
         lastSyncDate = nil
         await syncAll()
+    }
+
+    func resetAuthState() {
+        didRequestAuthorization = false
+        healthKitDenied = false
     }
 
     // MARK: - Glucose

@@ -96,6 +96,10 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Insights", systemImage: "brain.head.profile")
                 }
+            AccountView()
+                .tabItem {
+                    Label("Account", systemImage: "person.circle.fill")
+                }
         }
     }
 }

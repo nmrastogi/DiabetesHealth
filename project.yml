@@ -1,4 +1,4 @@
-name: DiabetesHealth
+name: Diabeto
 
 options:
   bundleIdPrefix: com.diabeteshealth
@@ -10,10 +10,10 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: ""              # fill in your Apple Team ID
+    DEVELOPMENT_TEAM: "3B4BSY53LG"              # fill in your Apple Team ID
 
 targets:
-  DiabetesHealth:
+  Diabeto:
     type: application
     platform: iOS
     deploymentTarget: "16.0"
@@ -24,7 +24,7 @@ targets:
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.diabeteshealth.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.diabeto.app
         INFOPLIST_FILE: DiabetesHealth/Info.plist
         CODE_SIGN_ENTITLEMENTS: DiabetesHealth/DiabetesHealth.entitlements
         TARGETED_DEVICE_FAMILY: "1"   # 1 = iPhone, "1,2" = iPhone + iPad
@@ -36,16 +36,16 @@ targets:
       path: DiabetesHealth/DiabetesHealth.entitlements
       properties:
         com.apple.developer.healthkit: true
-        com.apple.developer.healthkit.access:
-          - health-records
 
     info:
       path: DiabetesHealth/Info.plist
       properties:
+        CFBundleDisplayName: Diabeto
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSHealthShareUsageDescription: "DiabetesHealth reads your glucose, sleep, and exercise data to generate personalised health insights."
-        NSHealthUpdateUsageDescription: "DiabetesHealth does not write any data to HealthKit."
+        NSHealthShareUsageDescription: "Diabeto reads your glucose, sleep, and exercise data to generate personalised health insights."
+        NSHealthUpdateUsageDescription: "Diabeto does not write any data to HealthKit."
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        ITSAppUsesNonExemptEncryption: false

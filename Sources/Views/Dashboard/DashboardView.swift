@@ -75,6 +75,21 @@ struct DashboardView: View {
                                 }
                                 .chartYScale(domain: 40...350)
                             }
+                        } else {
+                            ChartCard(title: "Glucose (mg/dL)") {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "chart.line.xaxis")
+                                        .font(.title2)
+                                        .foregroundStyle(.secondary)
+                                    Text("No glucose data yet")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Text("Sync HealthKit data to see trends")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 100)
+                            }
                         }
                     } else if vm.isLoading {
                         ProgressView("Loading…")
@@ -82,12 +97,41 @@ struct DashboardView: View {
                     }
 
 
-                    if let error = vm.errorMessage {
-                        Text(error)
-                            .foregroundStyle(.red)
+                    if HealthKitService.shared.healthKitDenied {
+                        HStack(spacing: 10) {
+                            Image(systemName: "heart.slash.fill").foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("HealthKit access denied")
+                                    .font(.caption.bold())
+                                Text("Enable access in Settings to sync your data.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
                             .font(.caption)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                            .buttonStyle(.bordered)
+                        }
+                        .padding()
+                        .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                    }
+
+                    if let error = vm.errorMessage {
+                        VStack(spacing: 8) {
+                            Text(error)
+                                .foregroundStyle(.red)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                            Button("Retry") { Task { await vm.loadAll(force: true) } }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal)
                     }
                 }
                 .padding()

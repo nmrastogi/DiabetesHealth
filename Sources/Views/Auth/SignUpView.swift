@@ -77,7 +77,7 @@ struct SignUpView: View {
         .navigationTitle("Sign Up")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToConfirm) {
-            ConfirmView(email: email)
+            ConfirmView(email: email, onSignIn: { dismiss() })
         }
     }
 }
