@@ -83,6 +83,7 @@ struct LoginView: View {
                 Spacer()
             }
             .padding(.horizontal, 32)
+            .onTapGesture { hideKeyboard() }
             .navigationDestination(isPresented: $showSignUp) {
                 SignUpView()
             }

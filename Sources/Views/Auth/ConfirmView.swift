@@ -106,6 +106,7 @@ struct ConfirmView: View {
             Spacer()
         }
         .padding(.horizontal, 32)
+        .onTapGesture { hideKeyboard() }
         .navigationTitle("Verify Email")
         .navigationBarTitleDisplayMode(.inline)
     }

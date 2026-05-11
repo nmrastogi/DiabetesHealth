@@ -81,6 +81,12 @@ struct MarkdownText: View {
     }
 }
 
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
 struct MainTabView: View {
     var body: some View {
         TabView {
@@ -88,11 +94,7 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Chat", systemImage: "bubble.left.and.bubble.right.fill")
                 }
-            DashboardView()
-                .tabItem {
-                    Label("Dashboard", systemImage: "chart.bar.fill")
-                }
-            InsightsView()
+InsightsView()
                 .tabItem {
                     Label("Insights", systemImage: "brain.head.profile")
                 }

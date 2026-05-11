@@ -40,6 +40,7 @@ struct ChatView: View {
                             withAnimation { proxy.scrollTo("thinking", anchor: .bottom) }
                         }
                     }
+                    .scrollDismissesKeyboard(.interactively)
                 }
 
                 Divider()

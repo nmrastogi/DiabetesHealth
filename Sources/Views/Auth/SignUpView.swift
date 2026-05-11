@@ -74,6 +74,7 @@ struct SignUpView: View {
             Spacer()
         }
         .padding(.horizontal, 32)
+        .onTapGesture { hideKeyboard() }
         .navigationTitle("Sign Up")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToConfirm) {

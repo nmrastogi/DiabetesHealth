@@ -11,6 +11,15 @@ An AI-powered diabetes health companion for iPhone. Syncs blood glucose, sleep, 
 - **Apple Health sync** — reads CGM readings, sleep stages, and workouts automatically
 - **Account management** — change password, sign out, HealthKit sync status
 
+## Screenshots
+
+<p float="left">
+  <img src="docs/screenshots/chat.jpg" width="22%" />
+  <img src="docs/screenshots/insights.jpg" width="22%" />
+  <img src="docs/screenshots/insights_combined.jpg" width="22%" />
+  <img src="docs/screenshots/account.jpg" width="22%" />
+</p>
+
 ## Tech Stack
 
 **iOS App**
