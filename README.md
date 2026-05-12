@@ -1,4 +1,4 @@
-# Diabeto
+# Diabetico
 
 An AI-powered diabetes health companion for iPhone. Syncs blood glucose, sleep, and exercise data from Apple Health and uses Claude AI to generate personalised insights and answer questions about your health in plain English.
 
@@ -79,13 +79,13 @@ cp Sources/Config/Config.private.swift.template Sources/Config/Config.private.sw
 xcodegen generate
 
 # 5. Open in Xcode
-open Diabeto.xcodeproj
+open Diabetico.xcodeproj
 ```
 
 Build & run on the iPhone 17 simulator:
 ```bash
-xcodebuild -project Diabeto.xcodeproj \
-  -scheme Diabeto \
+xcodebuild -project Diabetico.xcodeproj \
+  -scheme Diabetico \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   build
 ```

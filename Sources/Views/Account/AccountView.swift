@@ -22,7 +22,7 @@ struct AccountView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(auth.userEmail ?? "Signed in")
                                 .font(.subheadline.bold())
-                            Text("Diabeto account")
+                            Text("Diabetico account")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -66,7 +66,7 @@ struct AccountView: View {
                 ChangePasswordView()
                     .environmentObject(auth)
             }
-            .confirmationDialog("Sign out of Diabeto?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
+            .confirmationDialog("Sign out of Diabetico?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
                 Button("Sign Out", role: .destructive) { auth.signOut() }
                 Button("Cancel", role: .cancel) {}
             }

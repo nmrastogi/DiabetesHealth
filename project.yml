@@ -1,4 +1,4 @@
-name: Diabeto
+name: Diabetico
 
 options:
   bundleIdPrefix: com.diabeteshealth
@@ -13,7 +13,7 @@ settings:
     DEVELOPMENT_TEAM: "3B4BSY53LG"              # fill in your Apple Team ID
 
 targets:
-  Diabeto:
+  Diabetico:
     type: application
     platform: iOS
     deploymentTarget: "16.0"
@@ -40,12 +40,12 @@ targets:
     info:
       path: DiabetesHealth/Info.plist
       properties:
-        CFBundleDisplayName: Diabeto
+        CFBundleDisplayName: Diabetico
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSHealthShareUsageDescription: "Diabeto reads your glucose, sleep, and exercise data to generate personalised health insights."
-        NSHealthUpdateUsageDescription: "Diabeto does not write any data to HealthKit."
+        NSHealthShareUsageDescription: "Diabetico reads your glucose, sleep, and exercise data to generate personalised health insights."
+        NSHealthUpdateUsageDescription: "Diabetico does not write any data to HealthKit."
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         ITSAppUsesNonExemptEncryption: false

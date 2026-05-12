@@ -12,8 +12,8 @@ xcodegen generate
 
 Build from the command line (simulator):
 ```bash
-xcodebuild -project Diabeto.xcodeproj \
-  -scheme Diabeto \
+xcodebuild -project Diabetico.xcodeproj \
+  -scheme Diabetico \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   build
 ```
